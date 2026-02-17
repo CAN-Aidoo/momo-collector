@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Offering</title>
+  <style>
+    /* === DESIGN SYSTEM: IVE / JOBS MINIMALISM === */
+    :root {
+      --bg-color: #F5F5F7;
+      --card-bg: #FFFFFF;
+      --text-primary: #1D1D1F;
+      --text-secondary: #86868B;
+      --accent-color: #0071E3; /* Apple Blue */
+      --accent-hover: #0077ED;
+      --danger-color: #FF3B30;
+      --success-color: #34C759;
+      --warning-color: #FF9500;
+      --border-color: rgba(0, 0, 0, 0.1);
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+      --shadow-lg: 0 12px 24px rgba(0,0,0,0.12);
+      --glass-bg: rgba(255, 255, 255, 0.8);
+      --radius-sm: 12px;
+      --radius-md: 18px;
+      --radius-lg: 24px;
+      --font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg-color);
+      color: var(--text-primary);
+      line-height: 1.4;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding-bottom: 40px; /* Space for FAB */
+    }
+
+    /* === LAYOUT === */
+    .app-container {
+      width: 100%;
+      max-width: 480px;
+      min-height: 100vh;
+      background: var(--bg-color);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    @media (min-width: 481px) {
+      body {
+        align-items: center;
+        padding: 40px 0;
+      }
+      .app-container {
+        min-height: auto;
+        height: 800px;
+        border-radius: 40px;
+        box-shadow: var(--shadow-lg);
+        overflow: hidden; /* For rounded corners */
+        border: 1px solid rgba(0,0,0,0.05);
+      }
+    }
+
+    /* === HEADER & NAVIGATION === */
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      padding: 16px 20px 10px;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .header-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    /* Segmented Control Navigation */
+    .segmented-control {
+      display: flex;
+      background: rgba(118, 118, 128, 0.12);
+      border-radius: 9px;
+      padding: 2px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      border: none;
+      background: none;
+      padding: 6px 0;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .tab-btn.active {
+      background: #FFFFFF;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.12);
+      font-weight: 600;
+    }
+
+    /* === CONTENT AREA === */
+    .content-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 20px;
+      scroll-behavior: smooth;
+    }
+
+    .tab-panel {
+      display: none;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .tab-panel.active {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* === CARDS & SECTIONS === */
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 20px;
+    }
+
+    h2 {
+      font-size: 19px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      letter-spacing: -0.3px;
+    }
+
+    /* === FORM ELEMENTS === */
+    .form-group {
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    input, select {
+      width: 100%;
+      background: rgba(0,0,0,0.03); /* Slight gray bg */
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      font-size: 17px;
+      color: var(--text-primary);
+      font-family: var(--font-family);
+      font-weight: 400;
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      background: #FFFFFF;
+      box-shadow: 0 0 0 2px var(--accent-color); /* Focus ring */
+    }
+    
+    input.invalid, select.invalid {
+      box-shadow: 0 0 0 2px var(--danger-color);
+    }
+
+    .field-error {
+      font-size: 12px;
+      color: var(--danger-color);
+      margin-top: 4px;
+      min-height: 16px;
+    }
+
+    /* Primary Button */
+    .btn-primary {
+      width: 100%;
+      background: var(--accent-color);
+      color: #FFFFFF;
+      border: none;
+      border-radius: var(--radius-lg); /* Pill shape */
+      padding: 16px;
+      font-size: 17px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.98);
+      background: var(--accent-hover);
+    }
+    
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Secondary Button */
+    .btn-secondary {
+      background: rgba(0,0,0,0.05);
+      color: var(--accent-color);
+      border: none;
+      border-radius: var(--radius-lg);
+      padding: 12px 20px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-secondary:hover { background: rgba(0,0,0,0.08); }
+
+    /* === DASHBOARD HERO === */
+    .dashboard-hero {
+      text-align: center;
+      padding: 20px 0 30px;
+    }
+
+    .hero-label {
+      font-size: 13px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .hero-amount {
+      font-size: 48px;
+      font-weight: 800;
+      letter-spacing: -2px;
+      color: var(--text-primary);
+      line-height: 1.1;
+    }
+
+    .hero-count {
+      font-size: 15px;
+      color: var(--text-secondary);
+      font-weight: 500;
+      margin-top: 6px;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    
+    .stat-box {
+      background: #FFFFFF;
+      padding: 16px;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      text-align: center;
+    }
+    
+    .stat-box-label { font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-box-value { font-size: 20px; font-weight: 700; margin-top: 4px; }
+    .text-success { color: var(--success-color); }
+    .text-danger { color: var(--danger-color); }
+
+    /* List View (iOS Settings Style) */
+    .list-group {
+      background: #FFFFFF;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .list-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    .list-item:last-child { border-bottom: none; }
+
+    .list-item-left { display: flex; align-items: center; gap: 12px; }
+    .list-item-right { text-align: right; }
+
+    .category-dot {
+      width: 12px; height: 12px; border-radius: 50%;
+    }
+
+    .item-title { font-size: 16px; font-weight: 500; }
+    .item-subtitle { font-size: 13px; color: var(--text-secondary); }
+    .item-amount { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+
+    /* === STATUS CARD === */
+    .status-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 40px 20px;
+    }
+
+    .status-icon-large {
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+      font-size: 32px;
+    }
+    .bg-success { background: rgba(52, 199, 89, 0.15); color: var(--success-color); }
+    .bg-process { background: rgba(0, 113, 227, 0.1); color: var(--accent-color); }
+    
+    .status-title { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+    .status-desc { font-size: 15px; color: var(--text-secondary); margin-bottom: 20px; max-width: 280px; }
+    .ref-pill {
+      background: rgba(0,0,0,0.05);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 14px;
+      color: var(--text-primary);
+    }
+
+    /* === TABLE for Reports === */
+    .table-container {
+      background: #fff;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      text-align: left;
+      padding: 12px 16px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      background: rgba(249,249,249, 0.5);
+    }
+    td {
+      padding: 14px 16px;
+      font-size: 14px;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    td:last-child { text-align: right; }
+    tr:last-child td { border-bottom: none; }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .badge-success { background: rgba(52, 199, 89, 0.15); color: var(--success-color); }
+    .badge-pending { background: rgba(255, 149, 0, 0.15); color: var(--warning-color); }
+    .badge-failed { background: rgba(255, 59, 48, 0.15); color: var(--danger-color); }
+
+    /* === UTILS === */
+    .spinner {
+      width: 20px; height: 20px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    .spinner-dark {
+      border: 3px solid rgba(0,0,0,0.1);
+      border-top-color: var(--accent-color);
+      width: 32px; height: 32px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .hidden { display: none !important; }
+
+    /* Connectivity Dot */
+    .dot {
+      width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-left: 6px;
+    }
+    .dot-online { background-color: var(--success-color); }
+    .dot-offline { background-color: var(--danger-color); }
+
+    /* Notification Toast */
+    .toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.8);
+      backdrop-filter: blur(10px);
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 30px;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 1000;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      animation: slideDown 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes slideDown { from { transform: translate(-50%, -100%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+    
+    /* Demo Banner */
+    .demo-ribbon {
+      background: #FFD60A; /* accessible yellow */
+      color: #000;
+      font-size: 11px;
+      font-weight: 700;
+      text-align: center;
+      padding: 4px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* Floating Action Button for Demo */
+    .fab-demo {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--text-primary);
+      color: #fff;
+      border: none;
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 20px;
+      font-weight: bold;
+      z-index: 200;
+      transition: transform 0.2s;
+    }
+    .fab-demo:hover { transform: scale(1.1); }
+
+  </style>
+</head>
+<body>
+
+  <!-- Demo Ribbon -->
+  <div id="demo-ribbon" class="demo-ribbon hidden">Demo Mode Active</div>
+
+  <div class="app-container">
+    
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-title-row">
+        <div>
+          <h1>Offering</h1>
+          <div class="subtitle">MoMo Collection System <span id="conn-dot" class="dot dot-online"></span></div>
+        </div>
+      </div>
+      
+      <!-- iOS-style Segmented Control -->
+      <nav class="segmented-control">
+        <button class="tab-btn active" onclick="switchTab('collect')">Collect</button>
+        <button class="tab-btn" onclick="switchTab('dashboard')">Dashboard</button>
+        <button class="tab-btn" onclick="switchTab('reports')">Reports</button>
+      </nav>
+    </header>
+
+    <div class="content-area">
+      
+      <!-- === TAB 1: COLLECT === -->
+      <section id="tab-collect" class="tab-panel active">
+        
+        <!-- Input Form -->
+        <div class="card" id="form-card">
+          <form id="offering-form" novalidate>
+            <div class="form-group">
+              <label for="phone">Mobile Number</label>
+              <input type="tel" id="phone" placeholder="024 123 4567" maxlength="10" required>
+              <div class="field-error" id="phone-error"></div>
+            </div>
+
+            <div class="form-group">
+              <label for="amount">Amount (GHS)</label>
+              <input type="number" id="amount" placeholder="0.00" min="1" step="0.01" required style="font-size: 24px; font-weight: 600;">
+              <div class="field-error" id="amount-error"></div>
+            </div>
+
+            <div class="form-group">
+              <label for="category">Category</label>
+              <select id="category" required>
+                <option value="">Select Category...</option>
+                <!-- Filled via JS -->
+              </select>
+              <div class="field-error" id="category-error"></div>
+            </div>
+            
+            <div class="form-group">
+              <label for="note">Note (Optional)</label>
+              <input type="text" id="note" placeholder="Add a note">
+            </div>
+
+            <button type="submit" id="submit-btn" class="btn-primary" style="margin-top: 24px;">
+              <span>Pay with MoMo</span>
+              <div class="spinner hidden" id="btn-spinner"></div>
+            </button>
+          </form>
+        </div>
+
+        <!-- Success/Processing State -->
+        <div id="status-card" class="status-container hidden">
+          <div class="status-icon-large bg-process" id="status-icon">
+            <div class="spinner spinner-dark" id="status-spinner"></div>
+          </div>
+          <h3 class="status-title" id="status-title">Processing</h3>
+          <p class="status-desc" id="status-desc">We've sent a prompt to your phone. Please verify with your PIN.</p>
+          <div class="ref-pill" id="status-ref">--</div>
+          
+          <button class="btn-secondary" onclick="resetForm()" style="margin-top: 32px;">Make Another Offering</button>
+        </div>
+
+      </section>
+
+      <!-- === TAB 2: DASHBOARD === -->
+      <section id="tab-dashboard" class="tab-panel">
+        
+        <div class="dashboard-hero">
+          <div class="hero-label">Total Collected Today</div>
+          <div class="hero-amount" id="dash-total">GHS 0.00</div>
+          <div class="hero-count"><span id="dash-count">0</span> transactions</div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-box-label">Success Rate</div>
+            <div class="stat-box-value text-success" id="dash-rate">0%</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-box-label">Failed</div>
+            <div class="stat-box-value text-danger" id="dash-failed">0</div>
+          </div>
+        </div>
+
+        <h2>Breakdown</h2>
+        <div class="list-group" id="category-list">
+          <div style="padding: 24px; text-align: center; color: var(--text-secondary);">No data yet</div>
+        </div>
+
+      </section>
+
+      <!-- === TAB 3: REPORTS === -->
+      <section id="tab-reports" class="tab-panel">
+        <div class="card">
+          <div class="form-group">
+            <label>Filter Date</label>
+            <input type="date" id="report-date" onchange="loadReport()">
+          </div>
+          <div class="table-container">
+            <table id="reports-table">
+              <thead>
+                <tr>
+                  <th>Ref</th>
+                  <th>Category</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="reports-body">
+                <!-- Rows -->
+              </tbody>
+            </table>
+          </div>
+          <div style="margin-top: 20px; display: flex; gap: 10px;">
+            <button class="btn-secondary" style="flex: 1;" onclick="exportCSV()">Export CSV</button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Demo FAB -->
+    <button id="demo-fab" class="fab-demo hidden" onclick="seedDemo()" title="Seed Data">+</button>
+
+  </div>
+
+  <script>
+    // === LOGIC ===
+    const POLL_INTERVAL = 4000;
+    const DASH_REFRESH = 30000;
+    let pollTimer = null;
+    let dashTimer = null;
+    let isDemo = false;
+
+    // API Helpers
+    async function api(endpoint, method = 'GET', body = null) {
+      try {
+        const opts = { method, headers: { 'Content-Type': 'application/json' } };
+        if (body) opts.body = JSON.stringify(body);
+        const res = await fetch(endpoint, opts);
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Request failed');
+        return data;
+      } catch (err) {
+        showToast(err.message);
+        throw err;
+      }
+    }
+
+    function showToast(msg) {
+      const t = document.createElement('div');
+      t.className = 'toast';
+      t.innerText = msg;
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 4000);
+    }
+
+    // Tabs
+    window.switchTab = (tab) => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      
+      // Find button by onclick attribute content because we didn't use IDs
+      const btns = Array.from(document.querySelectorAll('.tab-btn'));
+      const activeBtn = btns.find(b => b.getAttribute('onclick').includes(tab));
+      if(activeBtn) activeBtn.classList.add('active');
+
+      document.getElementById(\`tab-\${tab}\`).classList.add('active');
+
+      if (tab === 'dashboard') {
+        loadDashboard();
+        if (!dashTimer) dashTimer = setInterval(loadDashboard, DASH_REFRESH);
+      } else {
+        if (dashTimer) { clearInterval(dashTimer); dashTimer = null; }
+      }
+
+      if (tab === 'reports') {
+        loadReport();
+      }
+    };
+
+    // Init
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Check Demo
+      try {
+        const cfg = await api('/api/config');
+        isDemo = cfg.demoMode;
+        if (isDemo) {
+          document.getElementById('demo-ribbon').classList.remove('hidden');
+          document.getElementById('demo-fab').classList.remove('hidden');
+          document.getElementById('phone').value = '0241234567'; // Auto-fill for convenience
+        }
+      } catch (e) {}
+
+      // Load Categories
+      try {
+        const data = await api('/api/categories');
+        const sel = document.getElementById('category');
+        data.categories.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.code;
+          opt.innerText = c.name;
+          sel.appendChild(opt);
+        });
+      } catch (e) {
+        document.getElementById('conn-dot').classList.replace('dot-online', 'dot-offline');
+      }
+
+      // Connectivity listeners
+      window.addEventListener('online', () => document.getElementById('conn-dot').classList.replace('dot-offline', 'dot-online'));
+      window.addEventListener('offline', () => document.getElementById('conn-dot').classList.replace('dot-online', 'dot-offline'));
+
+      // Set date inputs to today
+      document.getElementById('report-date').valueAsDate = new Date();
+    });
+
+    // Form Handling
+    document.getElementById('offering-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      document.querySelectorAll('.field-error').forEach(el => el.innerText = '');
+      document.querySelectorAll('input, select').forEach(el => el.classList.remove('invalid'));
+
+      const phone = document.getElementById('phone').value.trim();
+      const amount = document.getElementById('amount').value;
+      const category = document.getElementById('category').value;
+      const note = document.getElementById('note').value;
+
+      let valid = true;
+      if (!phone.match(/^(024|054|055|059)\d{7}$/)) {
+        document.getElementById('phone-error').innerText = 'Invalid MTN number';
+        document.getElementById('phone').classList.add('invalid');
+        valid = false;
+      }
+      if (!amount || amount <= 0) {
+        document.getElementById('amount-error').innerText = 'Enter valid amount';
+        document.getElementById('amount').classList.add('invalid');
+        valid = false;
+      }
+      if (!category) {
+        document.getElementById('category-error').innerText = 'Required';
+        document.getElementById('category').classList.add('invalid');
+        valid = false;
+      }
+
+      if (!valid) return;
+
+      const btn = document.getElementById('submit-btn');
+      const spinner = document.getElementById('btn-spinner');
+      btn.disabled = true;
+      spinner.classList.remove('hidden');
+
+      try {
+        const res = await api('/api/offerings', 'POST', { phone, amount, category, note });
+        
+        // Show Status
+        document.getElementById('form-card').classList.add('hidden');
+        document.getElementById('status-card').classList.remove('hidden');
+        document.getElementById('status-ref').innerText = res.referenceNumber;
+        document.getElementById('status-title').innerText = 'Processing';
+        document.getElementById('status-desc').innerText = 'Prompt sent to ' + phone;
+        document.getElementById('status-icon').className = 'status-icon-large bg-process';
+        document.getElementById('status-icon').innerHTML = '<div class="spinner spinner-dark" id="status-spinner"></div>';
+
+        if (res.status === 'PENDING') {
+          pollStatus(res.referenceNumber);
+        }
+      } catch (e) {
+        btn.disabled = false;
+        spinner.classList.add('hidden');
+      }
+    });
+
+    async function pollStatus(ref) {
+      if (pollTimer) clearTimeout(pollTimer);
+      
+      const check = async () => {
+        try {
+          const res = await api(\`/api/offerings/\${ref}/status\`);
+          if (res.status === 'SUCCESSFUL') {
+            document.getElementById('status-title').innerText = 'Success!';
+            document.getElementById('status-desc').innerText = 'Offering received. Thank you!';
+            document.getElementById('status-icon').className = 'status-icon-large bg-success';
+            document.getElementById('status-icon').innerHTML = '✓'; // Simple checkmark
+          } else if (res.status === 'FAILED') {
+            document.getElementById('status-title').innerText = 'Failed';
+            document.getElementById('status-desc').innerText = 'Transaction failed or rejected.';
+            document.getElementById('status-icon').className = 'status-icon-large';
+            document.getElementById('status-icon').style.background = 'rgba(255, 58, 48, 0.15)';
+            document.getElementById('status-icon').style.color = '#FF3B30';
+            document.getElementById('status-icon').innerHTML = '✕';
+          } else {
+            pollTimer = setTimeout(check, POLL_INTERVAL);
+          }
+        } catch (e) {
+             // stop polling on error
+        }
+      };
+      
+      check();
+    }
+
+    window.resetForm = () => {
+      document.getElementById('offering-form').reset();
+      document.getElementById('submit-btn').disabled = false;
+      document.getElementById('btn-spinner').classList.add('hidden');
+      document.getElementById('form-card').classList.remove('hidden');
+      document.getElementById('status-card').classList.add('hidden');
+    };
+
+    // Dashboard
+    async function loadDashboard() {
+      try {
+        const data = await api('/api/offerings/summary');
+        
+        document.getElementById('dash-total').innerText = \`GHS \${data.grandTotal.toLocaleString()}\`;
+        document.getElementById('dash-count').innerText = data.totalTransactions;
+        document.getElementById('dash-rate').innerText = data.successRate;
+        document.getElementById('dash-failed').innerText = data.failedCount;
+
+        const list = document.getElementById('category-list');
+        list.innerHTML = '';
+        
+        if (data.categories.length === 0) {
+          list.innerHTML = '<div style="padding: 24px; text-align: center; color: var(--text-secondary);">No data yet</div>';
+        } else {
+          data.categories.forEach(c => {
+            const div = document.createElement('div');
+            div.className = 'list-item';
+            div.innerHTML = \`
+              <div class="list-item-left">
+                <div class="category-dot" style="background: var(--accent-color)"></div>
+                <div>
+                  <div class="item-title">\${c.name}</div>
+                  <div class="item-subtitle">\${c.count} transactions</div>
+                </div>
+              </div>
+              <div class="list-item-right">
+                <div class="item-amount">GHS \${c.total.toLocaleString()}</div>
+              </div>
+            \`;
+            list.appendChild(div);
+          });
+        }
+      } catch (e) {}
+    }
+
+    // Reports
+    async function loadReport() {
+      const date = document.getElementById('report-date').value;
+      try {
+        const data = await api(\`/api/offerings?date=\${date}\`);
+        const tbody = document.getElementById('reports-body');
+        tbody.innerHTML = '';
+        
+        if (data.offerings.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px;">No records</td></tr>';
+          return;
+        }
+
+        data.offerings.forEach(row => {
+          const tr = document.createElement('tr');
+          let badgeClass = 'badge-pending';
+          if (row.status === 'SUCCESSFUL') badgeClass = 'badge-success';
+          if (row.status === 'FAILED') badgeClass = 'badge-failed';
+          
+          tr.innerHTML = \`
+            <td><span style="font-family:monospace; font-size: 12px;">\${row.referenceNumber.split('-').pop()}</span></td>
+            <td>\${row.categoryName}</td>
+            <td style="font-weight: 600;">\${row.amount}</td>
+            <td style="text-align: right;"><span class="badge \${badgeClass}">\${row.status.toLowerCase()}</span></td>
+          \`;
+          tbody.appendChild(tr);
+        });
+      } catch (e) {}
+    }
+
+    window.exportCSV = () => {
+      const date = document.getElementById('report-date').value;
+      window.location.href = \`/api/offerings/export?date=\${date}&format=csv\`;
+    };
+
+    window.seedDemo = async () => {
+      await api('/api/demo/seed', 'POST');
+      showToast('Demo data seeded!');
+      switchTab('dashboard');
+    };
+
+  </script>
+</body>
+</html>
