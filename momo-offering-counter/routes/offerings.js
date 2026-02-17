@@ -57,6 +57,67 @@ const getSummaryByDate = db.prepare(`
 const getOfferingByRef = db.prepare('SELECT * FROM offerings WHERE reference_number = ?');
 const getOfferingByMomoRef = db.prepare('SELECT * FROM offerings WHERE momo_reference_id = ?');
 
+// --- Analytics prepared statements ---
+
+const getRecentOfferings = db.prepare(`
+  SELECT o.*, c.name as category_name
+  FROM offerings o
+  JOIN categories c ON o.category_code = c.code
+  ORDER BY o.created_at DESC
+  LIMIT ?
+`);
+
+const getOfferingsByDateRange = db.prepare(`
+  SELECT o.*, c.name as category_name
+  FROM offerings o
+  JOIN categories c ON o.category_code = c.code
+  WHERE DATE(o.created_at) BETWEEN ? AND ?
+  ORDER BY o.created_at DESC
+`);
+
+const getDailyTotalsByRange = db.prepare(`
+  SELECT DATE(created_at) as day,
+         COUNT(*) as count,
+         SUM(amount) as total,
+         SUM(CASE WHEN status = 'SUCCESSFUL' THEN 1 ELSE 0 END) as successCount
+  FROM offerings
+  WHERE DATE(created_at) BETWEEN ? AND ?
+  GROUP BY DATE(created_at)
+  ORDER BY day ASC
+`);
+
+const getCategoryTotalsByRange = db.prepare(`
+  SELECT o.category_code as code, c.name,
+         COUNT(*) as count,
+         SUM(o.amount) as total
+  FROM offerings o
+  JOIN categories c ON o.category_code = c.code
+  WHERE DATE(o.created_at) BETWEEN ? AND ?
+  GROUP BY o.category_code
+  ORDER BY total DESC
+`);
+
+const getHourlyDistribution = db.prepare(`
+  SELECT CAST(strftime('%H', created_at) AS INTEGER) as hour,
+         COUNT(*) as count,
+         SUM(amount) as total
+  FROM offerings
+  WHERE DATE(created_at) BETWEEN ? AND ?
+  GROUP BY hour
+  ORDER BY hour ASC
+`);
+
+const getTopContributors = db.prepare(`
+  SELECT phone_number, member_name,
+         COUNT(*) as count,
+         SUM(amount) as total
+  FROM offerings
+  WHERE DATE(created_at) BETWEEN ? AND ? AND status = 'SUCCESSFUL'
+  GROUP BY phone_number
+  ORDER BY total DESC
+  LIMIT ?
+`);
+
 const updateOfferingStatus = db.prepare(`
   UPDATE offerings
   SET status = ?, financial_txn_id = ?, updated_at = CURRENT_TIMESTAMP
@@ -331,6 +392,130 @@ router.get('/category/:code', (req, res) => {
     });
   } catch (err) {
     console.error('GET /api/offerings/category error:', err.message);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+/**
+ * GET /api/offerings/recent?limit=20
+ * Returns the most recent N transactions for the live dashboard feed.
+ */
+router.get('/recent', (req, res) => {
+  try {
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 100);
+    const rows = getRecentOfferings.all(limit);
+    const offerings = rows.map(formatOffering);
+
+    res.json({ success: true, count: offerings.length, offerings });
+  } catch (err) {
+    console.error('GET /api/offerings/recent error:', err.message);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+/**
+ * GET /api/offerings/analytics?from=YYYY-MM-DD&to=YYYY-MM-DD
+ * Returns comprehensive analytics for a date range.
+ */
+router.get('/analytics', (req, res) => {
+  try {
+    const to = req.query.to || getTodayDateString();
+    const from = req.query.from || to; // default to single-day
+
+    if (!isValidDateString(from) || !isValidDateString(to)) {
+      return res.status(400).json({ success: false, error: 'Invalid date format. Use YYYY-MM-DD' });
+    }
+
+    // Per-day totals (for bar chart)
+    const dailyTotals = getDailyTotalsByRange.all(from, to);
+
+    // Per-category totals (for pie chart)
+    const categoryTotals = getCategoryTotalsByRange.all(from, to);
+
+    // Grand totals
+    const grandTotal = categoryTotals.reduce((s, c) => s + (c.total || 0), 0);
+    const totalCount = categoryTotals.reduce((s, c) => s + c.count, 0);
+    const avgPerTransaction = totalCount > 0 ? Math.round(grandTotal / totalCount * 100) / 100 : 0;
+
+    // Hourly distribution
+    const hourly = getHourlyDistribution.all(from, to);
+    // Fill all 24 hours
+    const hourlyFull = [];
+    const hourMap = {};
+    hourly.forEach(h => { hourMap[h.hour] = h; });
+    for (let i = 0; i < 24; i++) {
+      hourlyFull.push({
+        hour: i,
+        label: `${String(i).padStart(2, '0')}:00`,
+        count: hourMap[i] ? hourMap[i].count : 0,
+        total: hourMap[i] ? Math.round((hourMap[i].total || 0) * 100) / 100 : 0
+      });
+    }
+
+    // Peak giving hour
+    let peakHour = hourlyFull.reduce((best, h) => h.count > best.count ? h : best, { count: 0, label: '--' });
+
+    // Top contributors (masked)
+    const topRaw = getTopContributors.all(from, to, 10);
+    const topContributors = topRaw.map(t => ({
+      phone: maskPhone(t.phone_number),
+      name: t.member_name || 'Anonymous',
+      count: t.count,
+      total: Math.round(t.total * 100) / 100
+    }));
+
+    // Comparison: previous period of same length
+    const fromDate = new Date(from + 'T00:00:00');
+    const toDate = new Date(to + 'T00:00:00');
+    const rangeDays = Math.round((toDate - fromDate) / 86400000) + 1;
+    const prevTo = new Date(fromDate.getTime() - 86400000);
+    const prevFrom = new Date(prevTo.getTime() - (rangeDays - 1) * 86400000);
+    const prevFromStr = prevFrom.toISOString().split('T')[0];
+    const prevToStr = prevTo.toISOString().split('T')[0];
+
+    const prevCategoryTotals = getCategoryTotalsByRange.all(prevFromStr, prevToStr);
+    const prevGrandTotal = prevCategoryTotals.reduce((s, c) => s + (c.total || 0), 0);
+    const prevTotalCount = prevCategoryTotals.reduce((s, c) => s + c.count, 0);
+
+    const changePercent = prevGrandTotal > 0
+      ? Math.round((grandTotal - prevGrandTotal) / prevGrandTotal * 1000) / 10
+      : null;
+    const countChangePercent = prevTotalCount > 0
+      ? Math.round((totalCount - prevTotalCount) / prevTotalCount * 1000) / 10
+      : null;
+
+    res.json({
+      success: true,
+      from, to, rangeDays,
+      grandTotal: Math.round(grandTotal * 100) / 100,
+      totalCount,
+      avgPerTransaction,
+      currency: 'GHS',
+      dailyTotals: dailyTotals.map(d => ({
+        day: d.day,
+        count: d.count,
+        total: Math.round((d.total || 0) * 100) / 100
+      })),
+      categoryTotals: categoryTotals.map(c => ({
+        code: c.code,
+        name: c.name,
+        count: c.count,
+        total: Math.round((c.total || 0) * 100) / 100
+      })),
+      hourlyDistribution: hourlyFull,
+      peakHour: { hour: peakHour.hour, label: peakHour.label, count: peakHour.count },
+      topContributors,
+      comparison: {
+        previousFrom: prevFromStr,
+        previousTo: prevToStr,
+        previousTotal: Math.round(prevGrandTotal * 100) / 100,
+        previousCount: prevTotalCount,
+        amountChangePercent: changePercent,
+        countChangePercent: countChangePercent
+      }
+    });
+  } catch (err) {
+    console.error('GET /api/offerings/analytics error:', err.message);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
